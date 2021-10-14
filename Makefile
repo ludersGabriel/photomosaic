@@ -2,7 +2,7 @@
 #   GRR20190172 
 
 # Variaveis
-CFLAGS = -Wall -g
+CFLAGS = -Wall
 LDLIBS = -lm
 CC = gcc 
 OBJ = main.o dir.o image.o matrix.o utils.o

@@ -19,17 +19,26 @@ void PrintPixels(image* img, FILE** output){
   //height is for rows
   long i, j;
   for(i = 0; i < img->dimensions[1]; i++){
-    for(j = 0; j < img->dimensions[0]; j++)
+    if(i % (img->dimensions[1] / 10) == 0 ){
+      fprintf(stderr, "\r[+] Writing target P3 output: %ld%%", (i * 100/ img->dimensions[1]) );
+      fflush(stderr);
+    }
+
+    for(j = 0; j < img->dimensions[0]; j++){
       fprintf(
         (*output),
         "%d %d %d ",
         img->pixels[i][j].red,
         img->pixels[i][j].green,
-        img->pixels[i][j].
-        blue
+        img->pixels[i][j].blue
       );
+    }
+    
     fprintf((*output), "\n");
   }
+
+  fprintf(stderr, "\r[+] Writing target P3 output: 100%%\n");
+  fflush(stderr);
 }
 
 // writes the header of a ppm into the output
@@ -87,8 +96,7 @@ image* GetImages(char* dir, long* n){
   if(!images)
     FireMemErrorException(__func__);
 
-  fprintf(stderr, "\t[-] Initializing tiles\n");
-  for(int i = 0; i < (*n); i++){
+  for(long i = 0; i < (*n); i++){
     InitializeImage(&images[i]);
     images[i].file = list[i];  
   }
@@ -116,16 +124,16 @@ pixel AveragePixel(image* img){
   // height is for rows
   for(i = 0; i < img->dimensions[1]; i++){
     for(j = 0; j < img->dimensions[0]; j++){
-      red += img->pixels[i][j].red * img->pixels[i][j].red; 
-      green += img->pixels[i][j].green * img->pixels[i][j].green; 
-      blue += img->pixels[i][j].blue * img->pixels[i][j].blue; 
+      red += powf(img->pixels[i][j].red, 2.0); 
+      green += powf(img->pixels[i][j].green, 2.0); 
+      blue += powf(img->pixels[i][j].blue, 2.0); 
       num++;
     }
   }
 
-  averagePixel.red = (unsigned char) round(sqrt(red/num));
-  averagePixel.green = (unsigned char) round(sqrt(green/num));
-  averagePixel.blue = (unsigned char) round(sqrt(blue/num));
+  averagePixel.red =  round(sqrtf(red/num));
+  averagePixel.green =  round(sqrtf(green/num));
+  averagePixel.blue =  round(sqrtf(blue/num));
 
   return averagePixel;
 }
@@ -133,6 +141,11 @@ pixel AveragePixel(image* img){
 // allocates memory for the data matrix 
 // and processes a P6 ppm
 void ProcessP6(FILE* file, image* img){
+  if(!img->file){
+    fprintf(stderr, "\r[+] Processing target P6 image: 0%%");
+    fflush(stderr);
+  }
+  
   long blocks;
 
   img->pixels = (pixel**) AllocateMatrix(
@@ -155,6 +168,10 @@ void ProcessP6(FILE* file, image* img){
     exit(1);
   }
 
+  if(!img->file){
+    fprintf(stderr, "\r[+] Processing target P6 image: 100%%\n");
+    fflush(stderr);
+  }
 }
 
 // allocates memory for the data matrix 
@@ -177,6 +194,12 @@ void ProcessP3(FILE* file, image* img){
   );
 
   for(i = 0; i < size && fscanf(file, "%m[^\n]", &buffer) > 0; ){
+    // checks if is a tile or main image
+    if(!img->file && i % (size/10) == 0){
+      fprintf(stderr, "\r[+] Processing target P3 image: %ld%%", i * 100 / size);
+      fflush(stderr);
+    }
+
     // filters \n after fscanf
     fgetc(file);
 
@@ -198,6 +221,12 @@ void ProcessP3(FILE* file, image* img){
 
     free(buffer);
   }
+
+  if(!img->file){
+    fprintf(stderr, "\r[+] Processing target P3 image: 100%%\n");
+    fflush(stderr);
+  }
+
   // copia o bloco de memória do vetor em cima da matriz de dados da struct image
   memcpy(img->pixels[0], v, size);
   free(v);
@@ -208,7 +237,7 @@ void ProcessP3(FILE* file, image* img){
 // treats the header of the file 
 // and populates the image struct with the info
 void ProcessHeader(FILE* file, image* img){
-  int i;
+  long i;
   char *buffer = NULL;
   char elements[3][10];
 
@@ -275,7 +304,7 @@ void ProcessImage(FILE* file, image* img){
 
 // responsible for processing the ppms in an array of images
 void ProcessImages(char* dir, image* images, long n){
-  int i;
+  long i;
   char* fullName = NULL;
   FILE* file = NULL;
 
@@ -285,11 +314,16 @@ void ProcessImages(char* dir, image* images, long n){
     fullName = AppendString(dir, images[i].file->d_name);
     file = OpenFile(fullName, "r");
 
+    if(i % (n/10) == 0){
+      fprintf(stderr, "\r[+] Loading tiles into memory: %ld%%", i * 100 / n);
+      fflush(stderr);
+    }
     ProcessImage(file, &(images[i]));
 
     fclose(file);
     free(fullName);
   }
+  fprintf(stderr, "\r[+] Loading tiles into memory: 100%%\n");
 }
 
 // returns the distance between two pixels
@@ -299,9 +333,14 @@ float RedMean(pixel* p1, pixel* p2){
   dR = p1->red - p2->red;
   dG = p1->green - p2->green;
   dB = p1->blue - p2->blue;
-  r = (p1->red + p2->red)/2;
+  r = (p1->red + p2->red)/2.0;
 
-  redmean = sqrt((2 + r/256)*dR*dR + 4*dG*dG + (2 + (255 -r)/256)*dB*dB);
+  redmean = sqrt(
+    (2.0 + r/256.0)* powf(dR, 2.0)
+     + 4.0*powf(dG, 2.0) 
+     + (2.0 + (255.0 -r)/256.0)*powf(dB, 2.0)
+  );
+
   return redmean; 
 }
 
@@ -318,17 +357,18 @@ pixel LocalAverage(long initI, long initJ, int inc, image* img){
 
   // reminder: width is for columns and
   // height is for rows
+
   for(i = initI; i < img->dimensions[1] && i < initI + inc; i++)
     for(j = initJ; j < img->dimensions[0] && j < initJ + inc; j++){
-      red += img->pixels[i][j].red * img->pixels[i][j].red; 
-      green += img->pixels[i][j].green * img->pixels[i][j].green; 
-      blue += img->pixels[i][j].blue * img->pixels[i][j].blue; 
+      red += powf(img->pixels[i][j].red, 2.0); 
+      green += powf(img->pixels[i][j].green, 2.0); 
+      blue += powf(img->pixels[i][j].blue, 2.0);
       num++;
     }
 
-  averagePixel.red = (unsigned char) round(sqrt(red/num));
-  averagePixel.green = (unsigned char) round(sqrt(green/num));
-  averagePixel.blue = (unsigned char) round(sqrt(blue/num));
+  averagePixel.red = round(sqrtf(red/num));
+  averagePixel.green = round(sqrtf(green/num));
+  averagePixel.blue =  round(sqrtf(blue/num));
 
   return averagePixel;
 }
@@ -383,12 +423,19 @@ void ComposeFinalImage(image* images, long n, image* mainImage){
   // iterates through mainImage in a semi-matrix fashion
   // defined by inc + i and inc + j
   for(i = 0; i < mainImage->dimensions[1]; i += inc){
+    if(i % (mainImage->dimensions[1] / 10) == 0){
+      fprintf(stderr, "\r[+] Copying tiles into target image: %ld%%", i * 100 / mainImage->dimensions[1]);
+      fflush(stderr);
+    }
+
     for(j = 0; j < mainImage->dimensions[0]; j+= inc){
       localAverage = LocalAverage(i, j, inc, mainImage);
       index = FindClosestImage(&localAverage, images, n);
       CopyMatrix(i, j, inc, mainImage, &images[index]);
     }
   }
+  fprintf(stderr, "\r[+] Copying tiles into target image: 100%%\n");
+  fflush(stderr);
 }
 
 // save all modifications done to mainImage into an output
@@ -398,6 +445,9 @@ void WriteFinalImage(image* mainImage, FILE** output){
   if(!strcmp(mainImage->type, "P3"))
     PrintPixels(mainImage, output);
   else if(!strcmp(mainImage->type, "P6")){
+    fprintf(stderr, "\r[+] Writing target P6 output: 0%%");
+    fflush(stderr);
+
     long blocks;
     blocks = fwrite(mainImage->pixels[0], sizeof(pixel), mainImage->dimensions[0] * mainImage->dimensions[1], (*output));
 
@@ -405,6 +455,9 @@ void WriteFinalImage(image* mainImage, FILE** output){
       fprintf(stderr, "falha ao executar fwrite em %s\n", __func__);
       exit(1);
     }
+
+    fprintf(stderr, "\r[+] Writing target P6 output: 100%%\n");
+    fflush(stderr);
   }
 }
 
@@ -425,7 +478,7 @@ void FreeImagesData(image** images, long n){
 
   // libera a memoria da matriz de dados e do dirent 
   // presentes em cada img do vetor images
-  int i;
+  long i;
   for(i = 0; i < n; i++){
     FreeImageData(&(*images)[i]);
   }

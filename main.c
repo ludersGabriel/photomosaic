@@ -16,21 +16,16 @@ int main(int argc, char** argv){
 
     // parses the argumentents and loads the 
     // tile array from dir into images
-    ParseArgs(argc, argv, "i:o:p:", &input, &output, &dir);
+    ParseArgs(argc, argv, "i:o:p:h", &input, &output, &dir);
     images = GetImages(dir, &n);
 
     // Processes the tiles and the input image
-    fprintf(stderr, "[+] Processing tiles\n");
     ProcessImages(dir, images, n);
-    fprintf(stderr, "[+] Initializing target image\n");
     InitializeImage(&target);
-    fprintf(stderr, "[+] Processing target image\n");
     ProcessImage(input, &target);
 
     // Structures and writes the final image in output
-    fprintf(stderr, "[+] Composing final image\n");
     ComposeFinalImage(images, n, &target);
-    fprintf(stderr, "[+] Writing final image to output\n");
     WriteFinalImage(&target, &output);
 
     // Frees all memory used by the program

@@ -18,7 +18,7 @@ typedef struct Pixel{
 // dimensions[0] == width
 // dimensions[1] == height
 typedef struct Image{
-  struct dirent* file;
+  struct dirent* file; // only tiles will have this prop 
   char type[3];
   long dimensions[2];
   int max;

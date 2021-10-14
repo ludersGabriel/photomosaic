@@ -1,4 +1,4 @@
-/* Feito Por Gabriel Lüders
+/* made by Gabriel Lüders
    GRR20190172 */
 
 #include <stdlib.h>
@@ -60,43 +60,52 @@ void FilterString(const char* str, char c){
 
 // checks the command line arguments and set default 
 // values when needed
-void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** valueO, char** valueP){
-  fprintf(stderr, "[+] Parsing command line arguments\n");
-  
-  int option;
-  int flagI, flagO, flagP;
-
-  flagI = flagO = flagP = 0;
+void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** valueO, char** valueP){  
   opterr = 0;
+  *valueI = stdin;
+  *valueO = stdout;
+  *valueP = AppendString("", "./tiles/");
 
-  for(; (option = getopt(argc, argv, args)) != -1; ){
+  int option = getopt(argc, argv, args);
+
+  if(option == -1){
+    fprintf(stderr, "No argument was provided\n");
+    exit(1);
+  }
+
+  while(option != -1){
     switch (option){
       case 'i':      
-        flagI = 1;
         *valueI = OpenFile(optarg, "r");
         break;
-      case 'o':      
-        flagO = 1;
-        *valueO = OpenFile(optarg, "w");
+      case 'o':
+        FilterString(optarg, '.');      
+        *valueO = OpenFile(AppendString(optarg, ".ppm"), "w");
         break;
       case 'p':      
-        flagP = 1;
         *valueP = optarg;
-        // garantir consistencia entre dir entrados com '/' no fim e 
-        // dirs entrados sem '/' no fim
+        // this guarantees that the folder name will have a '/' at the end
         if(((*valueP)[strlen(*valueP) - 1] == '/'))
             (*valueP)[strlen(*valueP) - 1] = '\0';
         *valueP = AppendString(*valueP, "/");
         break;
+      case 'h':
+        fprintf(
+          stderr, 
+          "This program builds a mosaic from a given image using a collection of square tiles.\n"
+        );
       default:
-        fprintf (stderr, "Usage: %s -a -b -c value\n", argv[0]);
+        fprintf (
+          stderr, 
+          "Usage: %s -i <input_file.ppm> -o <output_file.ppm> -p <tiles_folder/>\n", 
+         argv[0]
+        );
+        fprintf(stderr, "default value for tiles_folder = ./tiles\n");
         exit (1) ;
     }
-  }
 
-  if(!flagI) *valueI = stdin;
-  if(!flagO) *valueO = stdout;
-  if(!flagP) *valueP = AppendString("", "./tiles/");
+    option = getopt(argc, argv, args);
+  }
 
   // checa se o dir passado existe
   DIR* dir = opendir(*valueP);
@@ -105,6 +114,7 @@ void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** va
     exit(1);
   }
   closedir(dir);
+  fprintf(stderr, "\n[+] Parsing command line arguments\n");
 }
 
 // throws a generic error

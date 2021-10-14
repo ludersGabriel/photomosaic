@@ -38,7 +38,7 @@ struct dirent** GetDirEntries(char *dir, long* n){
 // and for nullifying all dirent pointers
 void FreeDirEntries(struct dirent** list){
   // if the list has already been freed, retuns out
-  if(!(*list)) return
+  if(!(*list)) return;
 
   free(*list);
   *list = NULL;
