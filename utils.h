@@ -1,4 +1,4 @@
-/* Feito Por Gabriel Lüders
+/* Made by Gabriel Lüders
    GRR20190172 */
 
 #ifndef UTILS_H

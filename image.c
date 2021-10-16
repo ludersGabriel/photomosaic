@@ -1,4 +1,4 @@
-/* Feito Por Gabriel Lüders
+/* Made by Gabriel Lüders
    GRR20190172 */
 
 #include <stdlib.h>
@@ -53,17 +53,6 @@ void PrintHeader(image* img, FILE** output){
   fprintf((*output), "%d\n", img->max);
 }
 
-// a debugging function that prints the
-// average pixel of an img 
-void PrintAveragePixel(image* img){
-  printf(
-    "%d %d %d",
-    img->averagePixel.red,
-    img->averagePixel.green,
-    img->averagePixel.blue
-  );
-}
-
 // sets default values for a pixel
 void InitializePixel(pixel* p){
   if(!p) return;
@@ -109,8 +98,7 @@ image* GetImages(char* dir, long* n){
 
 // Calculates the average pixel
 // the average is calculated with float values and 
-// rounded up at the end
-// it's also casted to unsigned char
+// rounded at the end
 pixel AveragePixel(image* img){
   long i, j, num = 0;
   pixel averagePixel;
@@ -164,7 +152,7 @@ void ProcessP6(FILE* file, image* img){
   );
 
   if(blocks != img->dimensions[0] * img->dimensions[1]){
-    fprintf(stderr, "Falha ao executar fread em %s\n", __func__);
+    fprintf(stderr, "Failed to execute fread at %s\n", __func__);
     exit(1);
   }
 
@@ -194,7 +182,6 @@ void ProcessP3(FILE* file, image* img){
   );
 
   for(i = 0; i < size && fscanf(file, "%m[^\n]", &buffer) > 0; ){
-    // checks if is a tile or main image
     if(!img->file && i % (size/10) == 0){
       fprintf(stderr, "\r[+] Processing target P3 image: %ld%%", i * 100 / size);
       fflush(stderr);
@@ -227,7 +214,7 @@ void ProcessP3(FILE* file, image* img){
     fflush(stderr);
   }
 
-  // copia o bloco de memória do vetor em cima da matriz de dados da struct image
+  // copies the block of memory into the data matrix of the image
   memcpy(img->pixels[0], v, size);
   free(v);
   v = NULL;
@@ -269,8 +256,8 @@ void ProcessHeader(FILE* file, image* img){
   if(strlen(elements[0]) <= 3)
     strcpy(img->type, elements[0]);
   else{
-    fprintf(stderr, "Erro em %s\n", __func__);
-    fprintf(stderr, "Número mágico deve ser P3 ou P6\n");
+    fprintf(stderr, "Error at %s\n", __func__);
+    fprintf(stderr, "Magic Number must be P3 or P6\n");
     exit(1);
   }
 
@@ -294,8 +281,8 @@ void ProcessImage(FILE* file, image* img){
   else if(!strcmp(img->type, "P6"))
       ProcessP6(file, img);
   else {
-    fprintf(stderr, "Erro em %s\n", __func__);
-    fprintf(stderr, "Tipo de imagem inválido\n");
+    fprintf(stderr, "Error at %s\n", __func__);
+    fprintf(stderr, "Invalid image type\n");
     exit(1);
   }
 
@@ -452,7 +439,7 @@ void WriteFinalImage(image* mainImage, FILE** output){
     blocks = fwrite(mainImage->pixels[0], sizeof(pixel), mainImage->dimensions[0] * mainImage->dimensions[1], (*output));
 
     if(blocks != mainImage->dimensions[0] * mainImage->dimensions[1]){
-      fprintf(stderr, "falha ao executar fwrite em %s\n", __func__);
+      fprintf(stderr, "Failed to execute fwrite at %s\n", __func__);
       exit(1);
     }
 
@@ -473,17 +460,15 @@ void FreeImageData(image* img){
 
 // frees all memory allocated by an struct image array
 void FreeImagesData(image** images, long n){
-  // checa se images já é NULL, ou seja, se ja tomou free
   if(!(*images)) return;
 
-  // libera a memoria da matriz de dados e do dirent 
-  // presentes em cada img do vetor images
+  // frees memory from the data matrix and the dirent
+  // in each img
   long i;
   for(i = 0; i < n; i++){
     FreeImageData(&(*images)[i]);
   }
 
-  // da free e nulifica o ponteiro do vetor de struct image
   free(*images);
   *images = NULL;
 }

@@ -13,7 +13,7 @@ FILE* OpenFile(char* path, char* mode){
   FILE* file = fopen(path, mode);
     
   if(!file){
-    fprintf(stderr, "Erro ao abrir %s\n", path);
+    fprintf(stderr, "Error opening %s\n", path);
     exit(0);
   }
 
@@ -80,9 +80,12 @@ void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** va
         break;
       case 'o':
         FilterString(optarg, '.');      
-        *valueO = OpenFile(AppendString(optarg, ".ppm"), "w");
+        char* outputName = AppendString(optarg, ".ppm");
+        *valueO = OpenFile(outputName, "w");
+        free(outputName);
         break;
       case 'p':      
+        free(*valueP);
         *valueP = optarg;
         // this guarantees that the folder name will have a '/' at the end
         if(((*valueP)[strlen(*valueP) - 1] == '/'))
@@ -107,10 +110,10 @@ void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** va
     option = getopt(argc, argv, args);
   }
 
-  // checa se o dir passado existe
+  // checks if the dir passed exists
   DIR* dir = opendir(*valueP);
   if(!dir){
-    fprintf(stderr, "Erro ao abrir o dir %s\n", *valueP);
+    fprintf(stderr, "Error opening dir %s\n", *valueP);
     exit(1);
   }
   closedir(dir);
@@ -119,14 +122,14 @@ void ParseArgs(int argc, char** argv, const char *args, FILE** valueI, FILE** va
 
 // throws a generic error
 void FireErrorException(const char* funcName){
-  fprintf(stderr, "Erro na função %s\n", funcName);
-  fprintf(stderr, "Para sua segurança, o programa foi abortado\n");
+  fprintf(stderr, "Error at function %s\n", funcName);
+  fprintf(stderr, "For your safety, program was aborted\n");
   exit(1);
 }
 
 // thows a memory error 
 void FireMemErrorException(const char* funcName){
-  fprintf(stderr, "Erro ao alocar memoria em %s\n", funcName);
-  fprintf(stderr, "Para sua segurança, o programa foi abortado\n");
+  fprintf(stderr, "Error alocating memory at %s\n", funcName);
+  fprintf(stderr, "For your safety, program was aborted\n");
   exit(1);
 }
